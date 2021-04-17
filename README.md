@@ -1,11 +1,11 @@
-# MRTracing
+# MRTracing:wrench:
  :rainbow: Ray Tracer by C++
 
 Miawu's Ray Tracing.
 
 参考：
 
--  [Ray Tracing In One Weekend](https://raytracing.github.io/books/RayTracingInOneWeekend.html) 
+-  [_Ray Tracing in One Weekend_](https://raytracing.github.io/books/RayTracingInOneWeekend.html)
 - GAMES 101
 
 ## 运行
