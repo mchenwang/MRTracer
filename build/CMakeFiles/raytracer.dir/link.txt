@@ -1,0 +1,3 @@
+D:\Tools\CMake\bin\cmake.exe -E rm -f CMakeFiles\raytracer.dir/objects.a
+D:\Language\MinGW\bin\ar.exe cr CMakeFiles\raytracer.dir/objects.a @CMakeFiles\raytracer.dir\objects1.rsp
+D:\Language\MinGW\bin\g++.exe  -Wall -Wextra -pedantic -std=c++17 -O3 -Wl,--whole-archive CMakeFiles\raytracer.dir/objects.a -Wl,--no-whole-archive -o raytracer.exe -Wl,--out-implib,libraytracer.dll.a -Wl,--major-image-version,0,--minor-image-version,0 @CMakeFiles\raytracer.dir\linklibs.rsp

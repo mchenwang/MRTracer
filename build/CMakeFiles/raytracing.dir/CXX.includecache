@@ -1,0 +1,30 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+../header/PPMImage.hpp
+iostream
+-
+fstream
+-
+
+D:/Work/CG/Self/MRTracing/src/PPMImage.cpp
+PPMImage.hpp
+D:/Work/CG/Self/MRTracing/src/PPMImage.hpp
+algorithm
+-
+iostream
+-
+fstream
+-
+
+D:/Work/CG/Self/MRTracing/src/main.cpp
+iostream
+-
+PPMImage.hpp
+D:/Work/CG/Self/MRTracing/src/PPMImage.hpp
+
