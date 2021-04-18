@@ -1,7 +1,7 @@
-# MRTracing:wrench:
+# MRTracer:wrench:
  :rainbow: Ray Tracer by C++
 
-Miawu's Ray Tracing.
+Miawu's Ray Tracer.
 
 参考：
 
@@ -13,11 +13,11 @@ Miawu's Ray Tracing.
 - Win10 + MinGW
 
 ```sh
-git clone https://github.com/miawua/MRTracing.git
-cd MRTracing
+git clone https://github.com/miawua/MRTracer.git
+cd MRTracer
 mkdir build
 cd build
 cmake -G "MinGW Makefiles" ..
-mingw32-make && raytracing.exe && start out.ppm
+mingw32-make && raytracer.exe && start out.ppm
 ```
 

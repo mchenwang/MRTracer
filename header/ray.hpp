@@ -10,7 +10,9 @@ namespace MRTracer{
         ~ray() = default;
         ray() noexcept {}
         ray(const pointd& origin, const vecd& direction) noexcept
-            : o(origin), dir(direction) {}
+            : o(origin), dir(direction) {
+                o.w = 1, dir.w = 0;
+            }
 
         pointd origin() const  { return o; }
         vecd direction() const { return dir; }

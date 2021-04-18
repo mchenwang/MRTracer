@@ -1,30 +1,20 @@
 #include <iostream>
+#include <vector>
 #include "PPMImage.hpp"
-#include "algebra.hpp"
-#include "ray.hpp"
+#include "global.hpp"
+#include "Object.hpp"
 
-constexpr double aspect_ratio = 16./9.;
-constexpr int image_height = 900;
-constexpr int image_width = image_height * aspect_ratio;
-constexpr double t = 1;
-constexpr double b = -t;
-constexpr double r = t * aspect_ratio;
-constexpr double l = -r;
-constexpr double focal_length = 1;
-const MRTracer::pointd origin(0,0,0,1);
-
-bool hit_sphere(const MRTracer::pointd& center, double radius, const MRTracer::ray& r) {
-    MRTracer::vecd oc = r.origin() - center;
-    auto a = r.direction() * r.direction();
-    auto b = oc * r.direction() * 2;
-    auto c = oc.norm2() - radius*radius;
-    auto discriminant = b*b - 4*a*c;
-    return (discriminant > 0);
-}
-
-Color trace(MRTracer::ray ray) {
+Color trace(MRTracer::ray ray, std::vector<MRTracer::Object*>& objects) {
+    double t_min = 0, t_max = infinity;
+    bool hit = false;
     Color c(166, 166, 166);
-    if(hit_sphere(MRTracer::pointd(0,0,-1), 0.5, ray)) c = Color(0, 127, 0);
+    for(MRTracer::Object* o: objects){
+        if(MRTracer::hit_record record; o->intersect(ray, record, t_min, t_max)) {
+            hit = true, t_max = record.t;
+            c = Color((record.normal.x+1)*0.5*255, (record.normal.y+1)*0.5*255, (record.normal.z+1)*0.5*255);
+        }
+    }
+    if(hit) return c;
     double t = (-1-ray.origin().z)/ray.direction().z;
     return c * (1./t);
 }
@@ -36,15 +26,21 @@ int main() {
     MRTracer::vecd vertical = MRTracer::vecd(0, t-b, 0, 0);
     MRTracer::vecd lower_left_corner = MRTracer::vecd(0, 0, -focal_length, 0) - horizontal/2 - vertical/2;
 
+    MRTracer::Sphere sphere(MRTracer::pointd(0,0,-1,1), 0.5);
+    MRTracer::Sphere earth(MRTracer::pointd(0,-100.5,-1,1), 100);
+
+    std::vector<MRTracer::Object*> objects;
+    objects.push_back(&sphere);
+    objects.push_back(&earth);
+
     for(int i=0;i<image_width;i++){
         for(int j=0;j<image_height;j++){
             double x = (double)i / (image_width-1);
             double y = (double)j / (image_height-1);
             MRTracer::vecd dir = (lower_left_corner + horizontal*x + vertical*y).normalized();
             
-            // std::cout<<dir<<"\n";
             MRTracer::ray ray(origin, dir);
-            image.set(i, j, trace(ray));
+            image.set(i, j, trace(ray, objects));
         }
     }
     image.write_to_file("out.ppm");
