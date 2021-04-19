@@ -8,22 +8,26 @@
 constexpr double aspect_ratio = 16./9.;
 constexpr int image_height = 900;
 constexpr int image_width = image_height * aspect_ratio;
-constexpr double t = 1;
-constexpr double b = -t;
-constexpr double r = t * aspect_ratio;
-constexpr double l = -r;
-constexpr double focal_length = 1;
-const MRTracer::pointd origin(0,0,0,1);
+// constexpr double t = 1;
+// constexpr double b = -t;
+// constexpr double r = t * aspect_ratio;
+// constexpr double l = -r;
+// constexpr double focal_length = 1;
+// const MRTracer::pointd origin(0,0,0,1);
+constexpr int samples_per_pixel = 100;
+
+constexpr int thread_num = 12;
 
 constexpr double infinity = std::numeric_limits<double>::infinity();
 constexpr double PI = 3.1415926535897932385;
 
-template<typename T>
-inline T get_random(T min, T max) {
-    std::random_device rd;
-    std::mt19937 generator(rd());
-    std::uniform_real_distribution<> distribution(min, max);
-    return dis(gen);
+inline double get_random(double min, double max) {
+    // std::random_device rd;
+    // std::mt19937 generator(rd());
+    // std::uniform_real_distribution<> distribution(min, max);
+    // return distribution(generator);
+
+    return min + (rand() / (RAND_MAX + 1.0)) * (max - min);
 }
 
 #endif

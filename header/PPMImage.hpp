@@ -6,7 +6,10 @@ typedef unsigned char uint8_t;
 
 struct Color {
     uint8_t r, g, b;
-    Color(uint8_t _r=0, uint8_t _g=0, uint8_t _b=0): r(_r), g(_g), b(_b) {}
+    Color(int _r=0, int _g=0, int _b=0)
+    : r((_r > 255 ? 255 : (_r < 0 ? 0 : _r))),
+      g((_g > 255 ? 255 : (_g < 0 ? 0 : _g))),
+      b((_b > 255 ? 255 : (_b < 0 ? 0 : _b))) {}
 
     Color operator*(double c) { return Color(r*c, g*c, b*c); }
     Color& operator*=(double c) { r*=c, g*=c, b*=c; return *this; }

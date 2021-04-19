@@ -5,6 +5,9 @@ set(HEADERS
     header/PPMImage.hpp
     header/algebra.hpp
     header/ray.hpp
+    header/global.hpp
+    header/Object.hpp
+    header/camera.hpp
 )
 set(SOURCES
     src/main.cpp
@@ -29,7 +32,7 @@ enable_cxx_compiler_flag_if_supported("-Wextra")
 enable_cxx_compiler_flag_if_supported("-pedantic")
 enable_cxx_compiler_flag_if_supported("-std=c++17")
 enable_cxx_compiler_flag_if_supported("-O3")
-# enable_cxx_compiler_flag_if_supported("-fopenmp")
+# enable_cxx_compiler_flag_if_supported("-pthread")
 
 include_directories(${CMAKE_CURRENT_LIST_DIR}/header)
 
