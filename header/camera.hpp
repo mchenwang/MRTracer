@@ -22,7 +22,7 @@ namespace MRTracer {
             origin = ori_;
         }
 
-        ray get_ray(double x, double y) {
+        ray get_ray(double x, double y) const {
             return ray(origin, (lower_left_corner + horizontal*x + vertical*y).normalized());
         }
     };

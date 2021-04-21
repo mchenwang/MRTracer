@@ -22,9 +22,9 @@ constexpr double infinity = std::numeric_limits<double>::infinity();
 constexpr double PI = 3.1415926535897932385;
 
 inline double get_random(double min, double max) {
-    // std::random_device rd;
-    // std::mt19937 generator(rd());
-    // std::uniform_real_distribution<> distribution(min, max);
+    // 贼慢
+    // static std::uniform_real_distribution<double> distribution(min, max);
+    // static std::mt19937 generator;
     // return distribution(generator);
 
     return min + (rand() / (RAND_MAX + 1.0)) * (max - min);

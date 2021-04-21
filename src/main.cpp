@@ -6,69 +6,82 @@
 #include "Object.hpp"
 #include "camera.hpp"
 
-static inline MRTracer::vecd get_rand_vec() {
+static MRTracer::vecd get_rand_vec() {
     while(true){
-        MRTracer::vecd ret(get_random(-1, 1), get_random(-1, 1), get_random(-1, 1), 0);;
+        MRTracer::vecd ret(get_random(-1, 1), get_random(-1, 1), get_random(-1, 1), 0);
         if(ret.norm2() >= 1) continue;
-        return ret;
+        return ret.normalized();
+        // return ret;
     }
 }
 
 namespace MRTracer {
-    Color trace(ray ray, std::vector<Object*>& objects, int dep = 10) {
-        if(dep <= 0) return Color(0,0,0);
-        double t_min = 0, t_max = infinity;
+    vecd trace(ray ray, const std::vector<const Object*>& objects, int dep = 10) {
+        if(dep <= 0) return vecd(0,0,0);
+        double t_min = 0.000001, t_max = infinity;
         bool hit = false;
-        Color c;
+        vecd c;
         hit_record record;
-        for(Object* o: objects){
+        for(const auto& o: objects){
             if(o->intersect(ray, record, t_min, t_max)) {
                 hit = true, t_max = record.t;
-                c = Color((record.normal.x+1)*0.5*255, (record.normal.y+1)*0.5*255, (record.normal.z+1)*0.5*255);
+                c = vecd((record.normal.x+1)*0.5, (record.normal.y+1)*0.5, (record.normal.z+1)*0.5);
             }
         }
         if(hit) {
-            vecd s = (record.normal + get_rand_vec()).normalized();
-            return trace(MRTracer::ray(record.p, s), objects, dep-1) * 0.8;
+            vecd dir = (record.normal + get_rand_vec()).normalized();
+            return trace(MRTracer::ray(record.p, dir), objects, dep-1) * 0.5;
         }
         double t = 0.5*(ray.direction().y + 1.0);
-        return Color((1-0.5*t)*255, (1-0.3*t)*255, 255);
+        return vecd((1-0.5*t), (1-0.3*t), 1.);
     }
 }
 
 PPMImage image(image_width, image_height);
-MRTracer::Camera camera;
-std::vector<MRTracer::Object*> objects;
+const MRTracer::Camera camera;
+std::vector<const MRTracer::Object*> objects;
+// HANDLE hMutex;
 
 struct RenderThreadData { int i_from, i_to; };
 DWORD WINAPI render(LPVOID range_) {
-    // srand(GetCurrentThreadId());
     RenderThreadData* range = (RenderThreadData*)range_;
+    srand(range->i_from);
     for(int i = range->i_from; i < range->i_to; i++){
         for(int j = 0; j < image_height; j++){
-            int r = 0, g = 0, b = 0;
+            double r = 0, g = 0, b = 0;
             for(int k = 0; k < samples_per_pixel; k++){
                 double x = (i + get_random(0., 1.)) / (image_width - 1);
                 double y = (j + get_random(0., 1.)) / (image_height- 1);
-                Color temp = trace(camera.get_ray(x, y), objects, 10);
-                r += temp.r, g += temp.g, b += temp.b;
+                auto temp = trace(camera.get_ray(x, y), objects, 10);
+                r += temp[0], g += temp[1], b += temp[2];
             }
-            image.set(i, j, Color(r/samples_per_pixel, g/samples_per_pixel, b/samples_per_pixel));
+            r = std::sqrt(r/samples_per_pixel)*255;
+            g = std::sqrt(g/samples_per_pixel)*255;
+            b = std::sqrt(b/samples_per_pixel)*255;
+            // r = (r/samples_per_pixel)*255;
+            // g = (g/samples_per_pixel)*255;
+            // b = (b/samples_per_pixel)*255;
+            // WaitForSingleObject(hMutex, INFINITE);
+            image.set(i, j, Color(r, g, b));
+            // ReleaseMutex(hMutex);
         }
     }
+    // std::cout<<range->i_from<<" "<<range->i_to<<"\n";
     std::cout<<"Thread "<<GetCurrentThreadId()<<" end\n";
     return 0L;
 }
 
 int main() {
-    MRTracer::Sphere sphere(MRTracer::pointd(0,0,-1,1), 0.5);
-    MRTracer::Sphere earth(MRTracer::pointd(0,-100.5,-1,1), 100);
+
+    const MRTracer::Sphere sphere(MRTracer::pointd(0,0,-1,1), 0.5);
+    const MRTracer::Sphere earth(MRTracer::pointd(0,-100.5,-1,1), 100);
 
     objects.push_back(&sphere);
     objects.push_back(&earth);
 
     HANDLE* thread_list = new HANDLE[thread_num];
     std::vector<RenderThreadData> thread_para(thread_num);
+    // hMutex = CreateMutex(NULL, false, NULL);
 
     for(int i = 0, from = 0; i < thread_num; i++) {
         int to = (i == thread_num - 1 ? image_width : from + image_width/thread_num);
@@ -77,16 +90,22 @@ int main() {
         from = to;
     }
     WaitForMultipleObjects(thread_num, thread_list, TRUE, INFINITE);
+    delete[] thread_list;
+
+    // #pragma omp parallel for
     // for(int i = 0; i < image_width; i++){
     //     for(int j = 0; j < image_height; j++){
-    //         int r = 0, g = 0, b = 0;
+    //         double r = 0, g = 0, b = 0;
     //         for(int k = 0; k < samples_per_pixel; k++){
     //             double x = (i + get_random(0., 1.)) / (image_width - 1);
     //             double y = (j + get_random(0., 1.)) / (image_height- 1);
-    //             Color temp = trace(camera.get_ray(x, y), objects);
-    //             r += temp.r, g += temp.g, b += temp.b;
+    //             auto temp = trace(camera.get_ray(x, y), objects, 10);
+    //             r += temp[0], g += temp[1], b += temp[2];
     //         }
-    //         image.set(i, j, Color(r/samples_per_pixel, g/samples_per_pixel, b/samples_per_pixel));
+    //         r = std::sqrt(r/samples_per_pixel)*255;
+    //         g = std::sqrt(g/samples_per_pixel)*255;
+    //         b = std::sqrt(b/samples_per_pixel)*255;
+    //         image.set(i, j, Color(r, g, b));
     //     }
     // }
     image.write_to_file("out.ppm");
