@@ -115,6 +115,11 @@ namespace MRTracer {
             return *this;
         }
 
+        bool is_zero_vec() {
+            constexpr double EPS = 0.000000001;
+            return std::abs(x) < EPS && std::abs(y) < EPS && std::abs(z) < EPS && std::abs(w) < EPS;
+        }
+
         double norm2() const { return x*x+y*y+z*z; }
         double norm() const { return std::sqrt(norm2()); }
         vec<4, T> normalized() const {
@@ -136,6 +141,10 @@ namespace MRTracer {
     template<typename T, typename U>
     vec<4, double> cross(const vec<4, T>& a, const vec<4, U>& b) {
         return vec<4, double>(a.y*b.z - a.z*b.y, a.z*b.x - a.x*b.z, a.x*b.y - a.y*b.x, 0);
+    }
+    template<typename T>
+    vec<4, T> outer_product(const vec<4, T>& a, const vec<4, T>& b) {
+        return vec<4, double>(a.x*b.x, a.y*b.y, a.z*b.z, a.w*b.w);
     }
 
     using vecd = vec<4, double>; using pointd = vec<4, double>;

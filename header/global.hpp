@@ -21,7 +21,7 @@ constexpr int thread_num = 12;
 constexpr double infinity = std::numeric_limits<double>::infinity();
 constexpr double PI = 3.1415926535897932385;
 
-inline double get_random(double min, double max) {
+inline double get_random(double min=0., double max=1.) {
     // 贼慢
     // static std::uniform_real_distribution<double> distribution(min, max);
     // static std::mt19937 generator;

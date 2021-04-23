@@ -6,33 +6,31 @@
 #include "Object.hpp"
 #include "camera.hpp"
 
-static MRTracer::vecd get_rand_vec() {
-    while(true){
-        MRTracer::vecd ret(get_random(-1, 1), get_random(-1, 1), get_random(-1, 1), 0);
-        if(ret.norm2() >= 1) continue;
-        return ret.normalized();
-        // return ret;
-    }
-}
-
 namespace MRTracer {
-    vecd trace(ray ray, const std::vector<const Object*>& objects, int dep = 10) {
+
+    vecd trace(ray r, const std::vector<const Object*>& objects, int dep = 10) {
         if(dep <= 0) return vecd(0,0,0);
-        double t_min = 0.000001, t_max = infinity;
+        double t_min = 0.00001, t_max = infinity;
         bool hit = false;
         vecd c;
         hit_record record;
         for(const auto& o: objects){
-            if(o->intersect(ray, record, t_min, t_max)) {
+            if(o->intersect(r, record, t_min, t_max)) {
                 hit = true, t_max = record.t;
                 c = vecd((record.normal.x+1)*0.5, (record.normal.y+1)*0.5, (record.normal.z+1)*0.5);
             }
         }
         if(hit) {
-            vecd dir = (record.normal + get_rand_vec()).normalized();
-            return trace(MRTracer::ray(record.p, dir), objects, dep-1) * 0.5;
+            ray scattered;
+            vecd attenuation;
+            if(record.material->scatter(r, record, attenuation, scattered))
+                return outer_product(attenuation, trace(scattered, objects, dep-1));
+            return vecd(0,0,0);
+            // vecd dir = (record.normal + get_rand_vec_in_hemisphere(record.normal)).normalized();
+            // vecd dir = get_rand_unit_vec_in_hemisphere(record.normal);
+            // return trace(MRTracer::ray(record.p, dir), objects, dep-1) * 0.5;
         }
-        double t = 0.5*(ray.direction().y + 1.0);
+        double t = 0.5*(r.direction().y + 1.0);
         return vecd((1-0.5*t), (1-0.3*t), 1.);
     }
 }
@@ -52,7 +50,7 @@ DWORD WINAPI render(LPVOID range_) {
             for(int k = 0; k < samples_per_pixel; k++){
                 double x = (i + get_random(0., 1.)) / (image_width - 1);
                 double y = (j + get_random(0., 1.)) / (image_height- 1);
-                auto temp = trace(camera.get_ray(x, y), objects, 10);
+                auto temp = trace(camera.get_ray(x, y), objects, 50);
                 r += temp[0], g += temp[1], b += temp[2];
             }
             r = std::sqrt(r/samples_per_pixel)*255;
@@ -66,18 +64,32 @@ DWORD WINAPI render(LPVOID range_) {
             // ReleaseMutex(hMutex);
         }
     }
-    // std::cout<<range->i_from<<" "<<range->i_to<<"\n";
     std::cout<<"Thread "<<GetCurrentThreadId()<<" end\n";
     return 0L;
 }
 
 int main() {
+    auto material_ground = std::make_shared<MRTracer::Lambertian>(MRTracer::vecd(0.8, 0.8, 0.0));
+    auto material_center = std::make_shared<MRTracer::Lambertian>(MRTracer::vecd(0.7, 0.3, 0.3));
+    auto material_left   = std::make_shared<MRTracer::Metal>(MRTracer::vecd(1, 1, 1), 0.3);
+    // auto material_right  = std::make_shared<MRTracer::Metal>(MRTracer::vecd(1, 1, 1), 0);
+    auto material_right  = std::make_shared<MRTracer::Dielectric>(1.5);
 
-    const MRTracer::Sphere sphere(MRTracer::pointd(0,0,-1,1), 0.5);
-    const MRTracer::Sphere earth(MRTracer::pointd(0,-100.5,-1,1), 100);
+    // const MRTracer::Sphere sphere(MRTracer::pointd(0,0,-1,1), 0.5);
+    const MRTracer::Sphere earth(MRTracer::pointd(0,-100.5,-1,1), 100, material_ground);
+    const MRTracer::Sphere sphere_c(MRTracer::pointd(0,0,-1,1), 0.5, material_center);
+    const MRTracer::Sphere sphere_l(MRTracer::pointd(-1,0,-1,1), 0.5, material_left);
+    const MRTracer::Sphere sphere_r(MRTracer::pointd(1,0,-1,1), 0.5, material_right);
+    const MRTracer::Sphere sphere_rr(MRTracer::pointd(1,0,-1,1), -0.4, material_right);
+    // const MRTracer::Sphere sphere1(MRTracer::pointd(0,0,-1,1), 0.5, material_left);
+    // const MRTracer::Sphere sphere2(MRTracer::pointd(-1,0,-1,1), 0.5, material_center);
+    // const MRTracer::Sphere sphere3(MRTracer::pointd(1,0,-1,1), 0.5, material_center);
 
-    objects.push_back(&sphere);
     objects.push_back(&earth);
+    objects.push_back(&sphere_c);
+    objects.push_back(&sphere_l);
+    objects.push_back(&sphere_r);
+    objects.push_back(&sphere_rr);
 
     HANDLE* thread_list = new HANDLE[thread_num];
     std::vector<RenderThreadData> thread_para(thread_num);
