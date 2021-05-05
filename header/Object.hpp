@@ -68,6 +68,14 @@ namespace MRTracer {
         }
     }
 
+    vecd random_in_unit_disk() {
+        while(true) {
+            vecd ret(get_random(-1, 1), get_random(-1, 1), 0, 0);
+            if(ret.norm2() >= 1) continue;
+            return ret;
+        }
+    }
+
     vecd get_rand_unit_vec_in_sphere() { return get_rand_vec_in_sphere().normalized(); }
 
     vecd get_rand_unit_vec_in_hemisphere(const vecd& nm) {
@@ -118,7 +126,7 @@ namespace MRTracer {
             double cos_theta = - (r.direction() * record.normal);
             if(cos_theta > 1.) cos_theta = 1.;
             double sin_theta = std::sqrt(1.0 - cos_theta * cos_theta);
-            if(eta * sin_theta > 1. || reflectance(cos_theta, eta) >= 1.) {
+            if(eta * sin_theta > 1. || reflectance(cos_theta, eta) >= get_random()) {
                 vecd reflect_dir = r.direction() - record.normal * (r.direction() * record.normal * 2.);
                 scattered = ray(record.p, reflect_dir.normalized());
             } else {

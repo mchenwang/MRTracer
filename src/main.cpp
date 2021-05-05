@@ -7,8 +7,7 @@
 #include "camera.hpp"
 
 namespace MRTracer {
-
-    vecd trace(ray r, const std::vector<const Object*>& objects, int dep = 10) {
+    vecd trace(ray r, const std::vector<std::unique_ptr<MRTracer::Object>>& objects, int dep = 10) {
         if(dep <= 0) return vecd(0,0,0);
         double t_min = 0.00001, t_max = infinity;
         bool hit = false;
@@ -36,9 +35,8 @@ namespace MRTracer {
 }
 
 PPMImage image(image_width, image_height);
-const MRTracer::Camera camera;
-std::vector<const MRTracer::Object*> objects;
-// HANDLE hMutex;
+MRTracer::Camera camera;
+std::vector<std::unique_ptr<MRTracer::Object>> objects;
 
 struct RenderThreadData { int i_from, i_to; };
 DWORD WINAPI render(LPVOID range_) {
@@ -56,44 +54,85 @@ DWORD WINAPI render(LPVOID range_) {
             r = std::sqrt(r/samples_per_pixel)*255;
             g = std::sqrt(g/samples_per_pixel)*255;
             b = std::sqrt(b/samples_per_pixel)*255;
-            // r = (r/samples_per_pixel)*255;
-            // g = (g/samples_per_pixel)*255;
-            // b = (b/samples_per_pixel)*255;
-            // WaitForSingleObject(hMutex, INFINITE);
             image.set(i, j, Color(r, g, b));
-            // ReleaseMutex(hMutex);
         }
     }
     std::cout<<"Thread "<<GetCurrentThreadId()<<" end\n";
     return 0L;
 }
 
-int main() {
+void create_small_word() {
+    const MRTracer::pointd eye_pos(3,3,2,1);
+    const MRTracer::vecd eye_up_dir(0,1,0,0);
+    const MRTracer::pointd center(0,0,-1,1);
+    camera = MRTracer::Camera(20, eye_pos, eye_up_dir, center);
+
     auto material_ground = std::make_shared<MRTracer::Lambertian>(MRTracer::vecd(0.8, 0.8, 0.0));
     auto material_center = std::make_shared<MRTracer::Lambertian>(MRTracer::vecd(0.7, 0.3, 0.3));
-    auto material_left   = std::make_shared<MRTracer::Metal>(MRTracer::vecd(1, 1, 1), 0.3);
-    // auto material_right  = std::make_shared<MRTracer::Metal>(MRTracer::vecd(1, 1, 1), 0);
-    auto material_right  = std::make_shared<MRTracer::Dielectric>(1.5);
+    auto material_left   = std::make_shared<MRTracer::Dielectric>(1.5);
+    auto material_right  = std::make_shared<MRTracer::Metal>(MRTracer::vecd(1, 1, 1), 0.3);
 
-    // const MRTracer::Sphere sphere(MRTracer::pointd(0,0,-1,1), 0.5);
-    const MRTracer::Sphere earth(MRTracer::pointd(0,-100.5,-1,1), 100, material_ground);
-    const MRTracer::Sphere sphere_c(MRTracer::pointd(0,0,-1,1), 0.5, material_center);
-    const MRTracer::Sphere sphere_l(MRTracer::pointd(-1,0,-1,1), 0.5, material_left);
-    const MRTracer::Sphere sphere_r(MRTracer::pointd(1,0,-1,1), 0.5, material_right);
-    const MRTracer::Sphere sphere_rr(MRTracer::pointd(1,0,-1,1), -0.4, material_right);
-    // const MRTracer::Sphere sphere1(MRTracer::pointd(0,0,-1,1), 0.5, material_left);
-    // const MRTracer::Sphere sphere2(MRTracer::pointd(-1,0,-1,1), 0.5, material_center);
-    // const MRTracer::Sphere sphere3(MRTracer::pointd(1,0,-1,1), 0.5, material_center);
+    objects.push_back(std::make_unique<MRTracer::Sphere>(MRTracer::Sphere(MRTracer::pointd(0,-100.5,-1,1), 100, material_ground)));
+    objects.push_back(std::make_unique<MRTracer::Sphere>(MRTracer::Sphere(MRTracer::pointd(0,0,-1,1), 0.5, material_center)));
+    objects.push_back(std::make_unique<MRTracer::Sphere>(MRTracer::Sphere(MRTracer::pointd(-1,0,-1,1), 0.5, material_left)));
+    objects.push_back(std::make_unique<MRTracer::Sphere>(MRTracer::Sphere(MRTracer::pointd(-1,0,-1,1), -0.4, material_left)));
+    objects.push_back(std::make_unique<MRTracer::Sphere>(MRTracer::Sphere(MRTracer::pointd(1,0,-1,1), 0.5, material_right)));
+}
 
-    objects.push_back(&earth);
-    objects.push_back(&sphere_c);
-    objects.push_back(&sphere_l);
-    objects.push_back(&sphere_r);
-    objects.push_back(&sphere_rr);
+void create_word() {
+    const MRTracer::pointd eye_pos(13,2,3,1);
+    const MRTracer::vecd eye_up_dir(0,1,0,0);
+    const MRTracer::pointd origin(0,0,-1,1);
+    camera = MRTracer::Camera(20, eye_pos, eye_up_dir, origin, 0.05, 10);
+
+    auto ground_material = std::make_shared<MRTracer::Lambertian>(MRTracer::vecd(0.5, 0.5, 0.5));
+    objects.push_back(std::make_unique<MRTracer::Sphere>(MRTracer::pointd(0,-1000,0), 1000, ground_material));
+
+    for (int a = -11; a < 11; a++) {
+        for (int b = -11; b < 11; b++) {
+            auto choose_mat = get_random();
+            MRTracer::pointd center(a + 0.9*get_random(), 0.2, b + 0.9*get_random(), 1);
+
+            if ((center - MRTracer::pointd(4, 0.2, 0)).norm() > 0.9) {
+                std::shared_ptr<MRTracer::Material> sphere_material;
+
+                if (choose_mat < 0.8) {
+                    // diffuse
+                    MRTracer::vecd albedo(get_random(), get_random(), get_random());
+                    sphere_material = std::make_shared<MRTracer::Lambertian>(albedo);
+                    objects.push_back(std::make_unique<MRTracer::Sphere>(center, 0.2, sphere_material));
+                } else if (choose_mat < 0.95) {
+                    // metal
+                    MRTracer::vecd albedo(get_random(.5, 1.), get_random(.5, 1.), get_random(.5, 1.));
+                    double fuzz = get_random(0, 0.5);
+                    sphere_material = std::make_shared<MRTracer::Metal>(albedo, fuzz);
+                    objects.push_back(std::make_unique<MRTracer::Sphere>(center, 0.2, sphere_material));
+                } else {
+                    // glass
+                    sphere_material = std::make_shared<MRTracer::Dielectric>(1.5);
+                    objects.push_back(std::make_unique<MRTracer::Sphere>(center, 0.2, sphere_material));
+                }
+            }
+        }
+    }
+
+    auto material1 = std::make_shared<MRTracer::Dielectric>(1.5);
+    objects.push_back(std::make_unique<MRTracer::Sphere>(MRTracer::pointd(0, 1, 0, 1), 1, material1));
+
+    auto material2 = std::make_shared<MRTracer::Lambertian>(MRTracer::vecd(0.4, 0.2, 0.1));
+    objects.push_back(std::make_unique<MRTracer::Sphere>(MRTracer::pointd(-4, 1, 0, 1), 1, material2));
+
+    auto material3 = std::make_shared<MRTracer::Metal>(MRTracer::vecd(0.7, 0.6, 0.5), 0.0);
+    objects.push_back(std::make_unique<MRTracer::Sphere>(MRTracer::pointd(4, 1, 0, 1), 1, material3));
+}
+
+int main() {
+
+    // create_small_word();
+    create_word();
 
     HANDLE* thread_list = new HANDLE[thread_num];
     std::vector<RenderThreadData> thread_para(thread_num);
-    // hMutex = CreateMutex(NULL, false, NULL);
 
     for(int i = 0, from = 0; i < thread_num; i++) {
         int to = (i == thread_num - 1 ? image_width : from + image_width/thread_num);
@@ -102,24 +141,8 @@ int main() {
         from = to;
     }
     WaitForMultipleObjects(thread_num, thread_list, TRUE, INFINITE);
-    delete[] thread_list;
 
-    // #pragma omp parallel for
-    // for(int i = 0; i < image_width; i++){
-    //     for(int j = 0; j < image_height; j++){
-    //         double r = 0, g = 0, b = 0;
-    //         for(int k = 0; k < samples_per_pixel; k++){
-    //             double x = (i + get_random(0., 1.)) / (image_width - 1);
-    //             double y = (j + get_random(0., 1.)) / (image_height- 1);
-    //             auto temp = trace(camera.get_ray(x, y), objects, 10);
-    //             r += temp[0], g += temp[1], b += temp[2];
-    //         }
-    //         r = std::sqrt(r/samples_per_pixel)*255;
-    //         g = std::sqrt(g/samples_per_pixel)*255;
-    //         b = std::sqrt(b/samples_per_pixel)*255;
-    //         image.set(i, j, Color(r, g, b));
-    //     }
-    // }
+    delete[] thread_list;
     image.write_to_file("out.ppm");
     return 0;
 }

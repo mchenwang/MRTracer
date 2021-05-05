@@ -1,7 +1,9 @@
-# MRTracer:wrench:
+# MRTracer
  :rainbow: Ray Tracer by C++
 
 Miawu's Ray Tracer.
+
+![](./out.jpg)
 
 参考：
 
